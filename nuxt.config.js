@@ -37,11 +37,14 @@ export default {
     ],
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
+    // https://go.nuxtjs.dev/device
+    '@nuxtjs/device',
     // https://go.nuxtjs.dev/pwa
     '@nuxtjs/pwa',
     [
       'vue-sweetalert2/nuxt',
       {
+        confirmButtonText: 'Confirm',
         confirmButtonColor: '#41b882',
         cancelButtonColor: '#ff7674',
         buttonsStyling: false,

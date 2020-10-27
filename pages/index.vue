@@ -1,9 +1,9 @@
 <template>
-  <div class="container-fluid" style="min-width: 860px">
+  <div class="container-fluid">
     <div class="row">
-      <div class="col-6 mx-auto">
+      <div class="colxl-4 col-lg-6 col-md-8 mx-auto mt-4">
         <b-form-input
-          style="position: absolute; top: 1rem; z-index: 1059"
+          class="mb-4 mt-4"
           v-model="name.value"
           :state="nameStated"
           placeholder="Enter your name"
@@ -22,7 +22,7 @@
     </div>
     <div class="row">
       <div class="col-12">
-        <div style="position: fixed; bottom: 1rem; z-index: 1059; right: 1rem">
+        <div style="position: fixed; bottom: 1rem; z-index: 1035; right: 1rem">
           <b-button-toolbar key-nav aria-label="Toolbar with button groups">
             <b-button-group class="mx-1">
               <b-button
@@ -118,36 +118,40 @@ export default {
       })
     },
     handleDateClick: function (arg) {
-      if (this.name.value) {
-        const idx = this.calendarOptions.events.findIndex(
-          (o) => o.title == this.name.value && o.date == arg.dateStr
-        )
-        if (idx == -1) {
-          this.$bvToast.toast(`Added date: ${arg.dateStr}`, {
-            title: 'Notification',
-            autoHideDelay: 1000,
-            appendToast: true,
-            variant: 'success',
-            noCloseButton: true,
-            toaster: 'b-toaster-bottom-left',
-          })
-          this.calendarOptions.events.push({
-            title: this.name.value,
-            date: arg.dateStr,
-          })
+      const month = parseInt(arg.dateStr.split('-')[1], 10)
+      const currentMonth = new Date().getMonth() + 1
+      if (month == currentMonth) {
+        if (this.name.value) {
+          const idx = this.calendarOptions.events.findIndex(
+            (o) => o.title == this.name.value && o.date == arg.dateStr
+          )
+          if (idx == -1) {
+            this.$bvToast.toast(`Added date: ${arg.dateStr}`, {
+              title: 'Notification',
+              autoHideDelay: 1000,
+              appendToast: true,
+              variant: 'success',
+              noCloseButton: true,
+              toaster: 'b-toaster-top-left',
+            })
+            this.calendarOptions.events.push({
+              title: this.name.value,
+              date: arg.dateStr,
+            })
+          } else {
+            this.$bvToast.toast(`Removed date: ${arg.dateStr}`, {
+              title: 'Notification',
+              autoHideDelay: 1000,
+              appendToast: true,
+              variant: 'danger',
+              noCloseButton: true,
+              toaster: 'b-toaster-top-left',
+            })
+            this.calendarOptions.events.splice(idx, 1)
+          }
         } else {
-          this.$bvToast.toast(`Removed date: ${arg.dateStr}`, {
-            title: 'Notification',
-            autoHideDelay: 1000,
-            appendToast: true,
-            variant: 'danger',
-            noCloseButton: true,
-            toaster: 'b-toaster-bottom-left',
-          })
-          this.calendarOptions.events.splice(idx, 1)
+          this.name.invalid = true
         }
-      } else {
-        this.name.invalid = true
       }
     },
   },
