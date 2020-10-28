@@ -45,6 +45,7 @@ export default {
       'vue-sweetalert2/nuxt',
       {
         confirmButtonText: 'Confirm',
+        denyButtonText: 'Cancel',
         confirmButtonColor: '#41b882',
         cancelButtonColor: '#ff7674',
         buttonsStyling: false,
@@ -52,7 +53,7 @@ export default {
           closeButton: 'btn btn-success mx-1',
           confirmButton: 'btn btn-success mx-1',
           denyButton: 'btn btn-danger mx-1',
-          cancelButton: 'btn btn-danger mx-1',
+          cancelButton: 'btn btn-secondary mx-1',
         },
       },
     ],

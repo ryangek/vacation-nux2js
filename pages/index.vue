@@ -3,12 +3,23 @@
     <div class="row">
       <div class="colxl-4 col-lg-6 col-md-8 mx-auto mt-4">
         <b-form-input
+          v-if="$store.state.profile.name"
           class="mb-4 mt-4"
           v-model="name.value"
           :state="nameStated"
           placeholder="Enter your name"
           trim
+          readonly
         ></b-form-input>
+        <b-button
+          v-if="!$store.state.profile.name"
+          @click="$router.push({ path: 'profile' })"
+          block
+          size="sm"
+          class="mb-4 mt-4"
+          variant="outline-primary"
+          >Edit Profile</b-button
+        >
       </div>
     </div>
     <div class="row">
@@ -70,6 +81,10 @@ export default {
       }
     },
   },
+  mounted() {
+    this.name.value = this.$store.state.profile.name
+    this.calendarOptions.events = this.$store.state.profile.vacations
+  },
   data() {
     return {
       name: {
@@ -86,18 +101,17 @@ export default {
   },
   methods: {
     onSave() {
-      const data = {
-        name: this.name.value,
-        dates: this.calendarOptions.events.map((o) => o.date),
-      }
       this.$swal({
         title: 'Are you sure ?',
         html: 'Please confirm your action.',
         showConfirmButton: true,
-        showCancelButton: true,
+        showDenyButton: true,
       }).then((result) => {
         if (result.value) {
-          console.info('Data: ', data)
+          localStorage.setItem(
+            'profile',
+            JSON.stringify(this.$store.state.profile)
+          )
         }
       })
     },
@@ -106,51 +120,118 @@ export default {
         title: 'Are you sure ?',
         html: 'Please confirm your action.',
         showConfirmButton: true,
-        showCancelButton: true,
+        showDenyButton: true,
       }).then((result) => {
         if (result.value) {
-          this.name = {
-            value: null,
-            invalid: false,
+          const len = this.$store.state.profile.vacations.length
+          for (let i = 0; i < len; i++) {
+            this.$store.commit('profile/removeVacation', 0)
           }
-          this.calendarOptions.events = []
         }
       })
     },
-    handleDateClick: function (arg) {
+    async handleDateClick(arg) {
       const month = parseInt(arg.dateStr.split('-')[1], 10)
       const currentMonth = new Date().getMonth() + 1
+      let dateStr = arg.dateStr
+      let result = null
+      const toastOpts = {
+        title: 'Notification',
+        autoHideDelay: 1000,
+        appendToast: true,
+        variant: 'success',
+        noCloseButton: true,
+        toaster: 'b-toaster-top-left',
+      }
+
       if (month == currentMonth) {
-        if (this.name.value) {
-          const idx = this.calendarOptions.events.findIndex(
-            (o) => o.title == this.name.value && o.date == arg.dateStr
-          )
-          if (idx == -1) {
-            this.$bvToast.toast(`Added date: ${arg.dateStr}`, {
-              title: 'Notification',
-              autoHideDelay: 1000,
-              appendToast: true,
-              variant: 'success',
-              noCloseButton: true,
-              toaster: 'b-toaster-top-left',
-            })
-            this.calendarOptions.events.push({
-              title: this.name.value,
-              date: arg.dateStr,
-            })
-          } else {
-            this.$bvToast.toast(`Removed date: ${arg.dateStr}`, {
-              title: 'Notification',
-              autoHideDelay: 1000,
-              appendToast: true,
+        const idx = this.calendarOptions.events.findIndex(
+          (o) =>
+            o.title == this.name.value &&
+            (o.date == arg.dateStr ||
+              (o.start && o.start.search(arg.dateStr) > -1))
+        )
+        if (idx > -1) {
+          this.$bvToast.toast(`Removed date: ${dateStr}`, {
+            ...toastOpts,
+            ...{
               variant: 'danger',
-              noCloseButton: true,
-              toaster: 'b-toaster-top-left',
-            })
-            this.calendarOptions.events.splice(idx, 1)
-          }
+            },
+          })
+          // this.calendarOptions.events.splice(idx, 1)
+          this.$store.commit('profile/removeVacation', idx)
         } else {
-          this.name.invalid = true
+          result = await this.$swal({
+            title: 'FULL or HALF day ? ',
+            html: 'Please confirm your action.',
+            confirmButtonText: 'FULL',
+            cancelButtonText: 'CANCEL',
+            denyButtonText: 'HALF',
+            showConfirmButton: true,
+            showCancelButton: true,
+            showDenyButton: true,
+          })
+          // when full day
+          if (result.isConfirmed) {
+            // when exist vacation in calendar
+            this.$bvToast.toast(`Added date: ${dateStr}`, toastOpts)
+            const event = {
+              title: this.name.value,
+              date: dateStr,
+            }
+            this.$store.commit('profile/addVacation', {
+              vacation: event,
+            })
+          } else if (result.isDenied) {
+            // when half day and another question
+            result = await this.$swal({
+              title: 'AM or PM ? ',
+              html: 'Please confirm your action.',
+              confirmButtonText: 'AM',
+              cancelButtonText: 'CANCEL',
+              denyButtonText: 'PM',
+              showConfirmButton: true,
+              showCancelButton: true,
+              showDenyButton: true,
+            })
+            let startStr = `${dateStr}T00:00:00`
+            let endStr = `${dateStr}T23:59:59`
+            if (result.isConfirmed) {
+              // when half AM
+              startStr = `${dateStr}T00:00:00`
+              endStr = `${dateStr}T12:00:00`
+              this.$bvToast.toast(
+                `Added date: ${startStr} - ${endStr}`,
+                toastOpts
+              )
+              const event = {
+                title: this.name.value,
+                start: startStr,
+                end: endStr,
+                allDay: false,
+              }
+              this.$store.commit('profile/addVacation', {
+                vacation: event,
+              })
+            } else if (result.isDenied) {
+              // when half PM
+              startStr = `${dateStr}T12:00:01`
+              endStr = `${dateStr}T23:59:59`
+              this.$bvToast.toast(
+                `Added date: ${startStr} - ${endStr}`,
+                toastOpts
+              )
+              const event = {
+                title: this.name.value,
+                start: startStr,
+                end: endStr,
+                allDay: false,
+              }
+              this.$store.commit('profile/addVacation', {
+                vacation: event,
+              })
+            }
+          }
         }
       }
     },
